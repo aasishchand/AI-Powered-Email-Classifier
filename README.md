@@ -1,93 +1,100 @@
-# Faculty Email Classification System
+# 📬 AI-Powered Email Classifier
 
-Enterprise-grade AI-powered email classification for university faculty: data ingestion, warehouse (Hive-style), Spark processing, ML (spam + topic), FastAPI backend, and React dashboard.
+**Enterprise-grade email classification for faculty and personal inboxes.** Connect Gmail or Outlook, classify spam and topics, and manage everything from a single dashboard.
 
-## Quick Start (Development)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.2-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-### Backend (FastAPI)
+---
 
-1. Create virtualenv and install deps:
-   ```bash
-   cd email-api
-   python -m venv venv
-   venv\Scripts\activate   # Windows
-   pip install -r requirements.txt
-   ```
-2. Copy env and set DB:
-   ```bash
-   copy .env.example .env
-   # Edit .env: DATABASE_URL=postgresql://admin:secret@localhost:5432/email_platform
-   ```
-3. Start PostgreSQL and Redis (e.g. Docker):
-   ```bash
-   docker run -d -p 5432:5432 -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=email_platform postgres:15-alpine
-   docker run -d -p 6379:6379 redis:7-alpine
-   ```
-4. Create tables and seed users:
-   ```bash
-   # Run sql/init.sql on the DB (e.g. psql or GUI), then:
-   python -m scripts.seed_users
-   ```
-5. Run API:
-   ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+## Summary
 
-### Frontend (React + Vite + MUI)
+The system helps faculty and staff manage high email volume by **classifying messages** (spam vs. ham, topics), **connecting real mailboxes** (Gmail/Outlook via IMAP), and **visualizing trends** in a web app. A FastAPI backend handles auth, metrics, and real-time sync; a React dashboard provides the UI. Optional data-pipeline and Spark components support batch processing and warehouse-style analytics.
 
-1. Install and run:
-   ```bash
-   cd faculty-email-dashboard
-   npm install
-   npm run dev
-   ```
-2. Copy `.env.example` to `.env` and set `VITE_API_URL=http://localhost:8000/api/v1`.
-3. Open http://localhost:5173. Login: `faculty@university.edu` / `faculty123` (after seeding).
+---
 
-### Full Stack with Docker
+## Dashboard
 
-From repo root:
+The **Dashboard** is the home view after login. It shows:
 
-```bash
-docker-compose up --build
-```
+- **KPIs:** Total emails today, spam rate, average response time, and time saved by auto-classification.
+- **Email volume (14 days):** Line chart of total and spam volume over two weeks.
+- **Topic distribution:** Pie chart of how emails are grouped (e.g. Academic, Administrative, Research, Events, IT, Finance, Student Affairs, General Announcements).
+- **Spam vs ham:** Breakdown of spam versus legitimate mail over the last 14 days.
 
-- Frontend: http://localhost:3000 (or via nginx on 80)
-- Backend: http://localhost:8000
-- API docs: http://localhost:8000/docs
+Real-time metric updates can be delivered over WebSocket when the backend supports it.
 
-Seed users after first run (backend + postgres up):
+![Dashboard](docs/dashboard.png)
 
-```bash
-docker-compose exec backend python -m scripts.seed_users
-```
+---
 
-## Project Layout
+## Emails
 
-- **email-api/** – FastAPI app: auth, dashboard metrics, emails list/detail, reclassify, WebSocket.
-- **faculty-email-dashboard/** – React (Vite, MUI, Redux): dashboard, email table, analytics, settings.
-- **sql/** – PostgreSQL init (users, feedback); Hive-style DDL in data-pipeline.
-- **data-pipeline/** – Spark preprocessing script, Hive DDL, Airflow DAG stub for ETL/ML.
-- **nginx/** – Reverse proxy config for Docker.
+The **Emails** page lists classified messages in a table. You can:
 
-## Features
+- **Filter by mailbox:** All, Faculty, or Personal.
+- **See per-email:** Mailbox type, sender, subject, topic tag, classification (HAM/SPAM), urgency, and date.
+- **Open a row** for full body and details.
+- **Reclassify** (e.g. mark as spam or not) to feed model improvement.
 
-- **Dashboard**: KPIs (total emails, spam %, time saved), topic distribution, email volume and spam trends.
-- **Emails**: Paginated list with filters, spam/ham chips, reclassify (feedback for retraining).
-- **Analytics**: 30-day email volume trends.
-- **Auth**: JWT login (form: username=email, password); optional Redis cache.
-- **WebSocket**: Real-time metrics updates on dashboard (dev: simulated).
+When a real mailbox is connected in Settings, this list is filled from your synced inbox; otherwise it shows demo or mock data.
 
-Backend uses mock/sample data when Spark/Hive are not available; replace with warehouse queries in production.
+![Emails](docs/emails.png)
 
-## Tech Stack
+---
 
-| Layer        | Tech                    |
-|-------------|-------------------------|
-| Frontend    | React 18, TypeScript, MUI, Redux, Recharts, Vite |
-| Backend     | FastAPI, Pydantic, SQLAlchemy (async), PostgreSQL, Redis |
-| Data/ML     | Spark (PySpark), Hive-style schema, Airflow DAG stub |
+## Analytics
+
+The **Analytics** page focuses on trends over time:
+
+- **Email volume trends (30 days):** Line chart of total, ham, and spam counts by day.
+- Tooltips on the chart show exact counts for a given date.
+
+This view helps spot patterns in volume and spam over the month.
+
+![Analytics](docs/analytics.png)
+
+---
+
+## Settings
+
+The **Settings** page is used to connect a real mailbox and control sync:
+
+- **Real-time email (IMAP):** Connect Gmail or Outlook using an App Password (not your normal password). The UI shows connection status (e.g. “Connected: you@gmail.com”).
+- **Sync now:** Manually trigger a sync of recent emails into the system; they then appear on the Emails page with classification.
+- **Disconnect:** Remove the linked mailbox and stop syncing.
+
+Notification and display preferences can be extended here later.
+
+![Settings](docs/settings.png)
+
+---
+
+## API documentation
+
+The backend exposes a REST API (auth, dashboard metrics, emails, mailbox connect/sync, WebSocket). Interactive **OpenAPI (Swagger)** docs are available at `/docs` when the API is running. There you can see all endpoints, try them with “Authorize” (JWT), and inspect request/response schemas.
+
+![API docs](docs/api-docs.png)
+
+---
+
+## Tech stack
+
+| Layer       | Technologies |
+|------------|----------------|
+| **Frontend** | React 18, TypeScript, Vite, Material UI, Redux Toolkit, Recharts |
+| **Backend**  | FastAPI, Pydantic, SQLAlchemy (async), JWT, WebSockets |
+| **Database** | SQLite (dev) / PostgreSQL; Redis optional for cache |
+| **Data/ML**  | Spark (PySpark), Hive-style schema, ETL/ML pipeline stubs |
+
+---
 
 ## License
 
-Internal/university use.
+Internal / university use.
+
+---
+
+**[GitHub](https://github.com/aasishchand/AI-Powered-Email-Classifier)**
