@@ -33,11 +33,14 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
         except Exception:
             pass
-    # Log that mailbox (and other) routes are loaded
+    # Log that key routes are loaded
     import sys
     paths = [r.path for r in app.routes if getattr(r, "path", None) and "mailbox" in r.path]
     if paths:
         print("Mailbox API loaded:", ", ".join(sorted(paths)), file=sys.stderr)
+    auth_paths = [r.path for r in app.routes if getattr(r, "path", None) and "auth" in r.path]
+    if auth_paths:
+        print("Auth routes loaded:", ", ".join(sorted(auth_paths)[:15]), file=sys.stderr)
     yield
     pass
 

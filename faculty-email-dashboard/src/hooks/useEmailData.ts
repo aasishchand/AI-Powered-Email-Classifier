@@ -35,6 +35,20 @@ export function useEmailData() {
     }
   }, [])
 
+  const fetchEmailById = useCallback(async (messageId: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const r = await api.get(`/emails/${encodeURIComponent(messageId)}`)
+      return r.data
+    } catch (e) {
+      setError('Failed to load email')
+      throw e
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const reclassifyEmail = useCallback(async (messageId: string, newLabel: string) => {
     setLoading(true)
     setError(null)

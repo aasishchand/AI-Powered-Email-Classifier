@@ -1,15 +1,16 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Box } from '@mui/material'
+import { AppBackground } from './AppBackground'
 import { Header } from './Header'
-import { Sidebar } from './Sidebar'
 
 export function Layout() {
+  const location = useLocation()
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', color: '#f8f6f0' }}>
+      <AppBackground />
       <Header />
-      <Sidebar />
-      <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8, ml: 8 }}>
-        <Outlet />
+      <Box component="main" sx={{ flexGrow: 1, p: 3, pt: 10, position: 'relative', zIndex: 0 }}>
+        <Outlet key={location.pathname} />
       </Box>
     </Box>
   )

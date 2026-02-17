@@ -35,6 +35,21 @@ class UserFeedback(Base):
     feedback_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 
+class UserOAuth(Base):
+    """OAuth tokens per user (e.g. Google) for Gmail API. Tokens stored encrypted."""
+    __tablename__ = "user_oauth"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True, unique=True)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, default="google")
+    access_token_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    refresh_token_encrypted: Mapped[str] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    scopes: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class UserMailbox(Base):
     """Stores connected mailbox (IMAP) per user - one active per user."""
     __tablename__ = "user_mailboxes"

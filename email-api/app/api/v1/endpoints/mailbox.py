@@ -8,11 +8,12 @@ from app.api.deps import get_current_user
 from app.core.encryption import decrypt_password, encrypt_password
 from app.db.session import get_db
 from app.db.models import UserMailbox
+from app.services.token_manager import get_oauth_for_user
 from app.services.imap_service import (
     fetch_emails_imap,
     get_mailbox_for_user,
     save_synced_emails,
-    _get_imap_server,
+    _normalize_imap_server,
 )
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,6 +30,7 @@ class ConnectMailboxRequest(BaseModel):
 
 class MailboxStatusResponse(BaseModel):
     connected: bool
+    method: Optional[str] = None  # "gmail" | "imap"
     mailbox_email: Optional[str] = None
     last_sync: Optional[str] = None
 
@@ -74,7 +76,7 @@ async def connect_mailbox(
         except ValueError as e:
             raise HTTPException(status_code=500, detail="Server encryption error. Please try again.")
 
-        server, port = _get_imap_server(body.email) if not body.imap_server else (body.imap_server, body.imap_port)
+        server, port = _normalize_imap_server(body.email, body.imap_server, body.imap_port)
         mailbox = UserMailbox(
             user_id=user_id,
             mailbox_email=body.email,
@@ -122,12 +124,22 @@ async def mailbox_status(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Check if user has a mailbox connected."""
-    mailbox = await get_mailbox_for_user(db, current_user["id"])
+    """Check if user has email connected: Gmail OAuth (preferred) or IMAP."""
+    user_id = current_user["id"]
+    # Prefer Gmail OAuth when present (no app password needed)
+    oauth = await get_oauth_for_user(db, user_id)
+    if oauth:
+        return MailboxStatusResponse(
+            connected=True,
+            method="gmail",
+            mailbox_email=current_user.get("email"),
+        )
+    mailbox = await get_mailbox_for_user(db, user_id)
     if not mailbox:
         return MailboxStatusResponse(connected=False)
     return MailboxStatusResponse(
         connected=True,
+        method="imap",
         mailbox_email=mailbox.mailbox_email,
     )
 

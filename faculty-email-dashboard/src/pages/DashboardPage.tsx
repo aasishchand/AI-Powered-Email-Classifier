@@ -30,34 +30,53 @@ export function DashboardPage() {
   if (error) return <Alert severity="error">{error}</Alert>
   if (!metrics) return <Alert severity="warning">No data</Alert>
 
+  const statCardSx = {
+    background: 'rgba(26, 31, 58, 0.5)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(0, 217, 255, 0.2)',
+    borderRadius: 3,
+    textAlign: 'center' as const,
+    transition: 'all 0.3s ease',
+    '&:hover': { borderColor: '#00d9ff', boxShadow: '0 20px 40px rgba(0, 217, 255, 0.15)', transform: 'translateY(-4px)' },
+  }
+  const gradientNum = {
+    fontFamily: '"Playfair Display", serif',
+    fontSize: '2.25rem',
+    fontWeight: 800,
+    background: 'linear-gradient(135deg, #00d9ff, #ffd700)',
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+  }
+
   return (
     <Box>
       {!isConnected && <Alert severity="warning" sx={{ mb: 2 }}>Real-time updates disconnected.</Alert>}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card><CardContent>
-            <Typography color="textSecondary" variant="subtitle2">Total Emails Today</Typography>
-            <Typography variant="h4" color="primary">{metrics.total_emails.toLocaleString()}</Typography>
-            <Typography variant="caption">↑ {metrics.change_from_yesterday ?? 0}% from yesterday</Typography>
+          <Card sx={statCardSx}><CardContent sx={{ py: 3 }}>
+            <Typography variant="subtitle2" sx={{ color: '#e8e6e1', letterSpacing: '0.05em', textTransform: 'uppercase', mb: 1 }}>Total Emails Today</Typography>
+            <Typography sx={gradientNum}>{metrics.total_emails.toLocaleString()}</Typography>
+            <Typography variant="caption" sx={{ color: '#e8e6e1', display: 'block', mt: 0.5 }}>↑ {metrics.change_from_yesterday ?? 0}% from yesterday</Typography>
           </CardContent></Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card><CardContent>
-            <Typography color="textSecondary" variant="subtitle2">Spam Detected</Typography>
-            <Typography variant="h4" color="error">{metrics.spam_percentage.toFixed(1)}%</Typography>
-            <Typography variant="caption">{metrics.spam_count} blocked</Typography>
+          <Card sx={statCardSx}><CardContent sx={{ py: 3 }}>
+            <Typography variant="subtitle2" sx={{ color: '#e8e6e1', letterSpacing: '0.05em', textTransform: 'uppercase', mb: 1 }}>Spam Detected</Typography>
+            <Typography sx={{ ...gradientNum, background: 'none', WebkitTextFillColor: '#ef5350' }}>{metrics.spam_percentage.toFixed(1)}%</Typography>
+            <Typography variant="caption" sx={{ color: '#e8e6e1', display: 'block', mt: 0.5 }}>{metrics.spam_count} blocked</Typography>
           </CardContent></Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card><CardContent>
-            <Typography color="textSecondary" variant="subtitle2">Avg Response Time</Typography>
-            <Typography variant="h4">{metrics.avg_response_time.toFixed(1)}h</Typography>
+          <Card sx={statCardSx}><CardContent sx={{ py: 3 }}>
+            <Typography variant="subtitle2" sx={{ color: '#e8e6e1', letterSpacing: '0.05em', textTransform: 'uppercase', mb: 1 }}>Avg Response Time</Typography>
+            <Typography sx={gradientNum}>{metrics.avg_response_time.toFixed(1)}h</Typography>
           </CardContent></Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card><CardContent>
-            <Typography color="textSecondary" variant="subtitle2">Time Saved Today</Typography>
-            <Typography variant="h4" color="success.main">{metrics.time_saved_hours.toFixed(1)}h</Typography>
+          <Card sx={statCardSx}><CardContent sx={{ py: 3 }}>
+            <Typography variant="subtitle2" sx={{ color: '#e8e6e1', letterSpacing: '0.05em', textTransform: 'uppercase', mb: 1 }}>Time Saved Today</Typography>
+            <Typography sx={gradientNum}>{metrics.time_saved_hours.toFixed(1)}h</Typography>
           </CardContent></Card>
         </Grid>
       </Grid>

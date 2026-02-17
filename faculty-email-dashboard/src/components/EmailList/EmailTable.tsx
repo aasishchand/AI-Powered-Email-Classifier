@@ -17,7 +17,7 @@ export function EmailTable() {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [mailboxFilter, setMailboxFilter] = useState<MailboxFilter>('all')
-  const { fetchEmails, reclassifyEmail, loading } = useEmailData()
+  const { fetchEmails, fetchEmailById, reclassifyEmail, loading } = useEmailData()
 
   const loadEmails = async () => {
     try {
@@ -36,6 +36,13 @@ export function EmailTable() {
 
   useEffect(() => {
     loadEmails()
+  }, [page, rowsPerPage, mailboxFilter])
+
+  // Refetch when user returns to this tab (e.g. after syncing in another tab or from Settings)
+  useEffect(() => {
+    const onFocus = () => loadEmails()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [page, rowsPerPage, mailboxFilter])
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,9 +66,15 @@ export function EmailTable() {
     }
   }
 
-  const handleViewDetail = (email: Email) => {
+  const handleViewDetail = async (email: Email) => {
     setSelectedEmail(email)
     setDetailOpen(true)
+    try {
+      const full = await fetchEmailById(email.message_id)
+      setSelectedEmail(full)
+    } catch {
+      // Keep showing list row data if fetch fails
+    }
   }
 
   if (loading && emails.length === 0) return <LoadingSpinner />
@@ -69,19 +82,20 @@ export function EmailTable() {
   return (
     <Box>
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <span style={{ marginRight: 8 }}>Mailbox:</span>
+        <span style={{ marginRight: 8, color: '#e8e6e1', fontWeight: 500 }}>Mailbox:</span>
         <ToggleButtonGroup
           value={mailboxFilter}
           exclusive
           onChange={(_, v: MailboxFilter | null) => v != null && setMailboxFilter(v)}
           size="small"
+          sx={{ '& .MuiToggleButton-root': { color: '#e8e6e1', borderColor: 'rgba(0, 217, 255, 0.3)' }, '& .Mui-selected': { color: '#00d9ff', borderColor: '#00d9ff' } }}
         >
           <ToggleButton value="all"><InboxIcon sx={{ mr: 0.5 }} /> All</ToggleButton>
           <ToggleButton value="faculty"><WorkIcon sx={{ mr: 0.5 }} /> Faculty</ToggleButton>
           <ToggleButton value="personal"><PersonIcon sx={{ mr: 0.5 }} /> Personal</ToggleButton>
         </ToggleButtonGroup>
       </Box>
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ border: '1px solid rgba(0, 217, 255, 0.2)', borderRadius: 3, overflow: 'hidden' }}>
         <Table>
           <TableHead>
             <TableRow>

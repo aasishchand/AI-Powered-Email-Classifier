@@ -1,15 +1,26 @@
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, Typography, TextField, Button, Box, Alert, CircularProgress } from '@mui/material'
+import { Card, CardContent, Typography, TextField, Button, Box, Alert, CircularProgress, Divider, Grid, Chip } from '@mui/material'
 import { api } from '../services/api'
+import { useAuth } from '../hooks/useAuth'
 
 interface MailboxStatus {
   connected: boolean
+  method?: 'gmail' | 'imap'
   mailbox_email?: string
   last_sync?: string
 }
 
+interface QuickStats {
+  total: number
+  spam: number
+  ham: number
+  topics: number
+}
+
 export function SettingsPage() {
+  const { email: userEmail, fullName } = useAuth()
   const [status, setStatus] = useState<MailboxStatus | null>(null)
+  const [stats, setStats] = useState<QuickStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [connectLoading, setConnectLoading] = useState(false)
   const [syncLoading, setSyncLoading] = useState(false)
@@ -22,16 +33,31 @@ export function SettingsPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await api.get<MailboxStatus>('/mailbox/status')
-      setStatus(data)
+      const [mailboxRes, emailsRes] = await Promise.all([
+        api.get<MailboxStatus>('/mailbox/status'),
+        api.get<{ total: number; emails: { spam_label: string; topic: string }[] }>('/emails/', { params: { page: 1, page_size: 1 } }),
+      ])
+      setStatus(mailboxRes.data)
+      const total = emailsRes.data.total || 0
+      // We'll fetch a broader set to compute stats
+      if (total > 0) {
+        const metricsRes = await api.get<{ total_emails: number; spam_count: number; top_topics: { name: string }[] }>('/dashboard/metrics')
+        setStats({
+          total: metricsRes.data.total_emails,
+          spam: metricsRes.data.spam_count,
+          ham: metricsRes.data.total_emails - metricsRes.data.spam_count,
+          topics: metricsRes.data.top_topics?.length || 0,
+        })
+      } else {
+        setStats({ total: 0, spam: 0, ham: 0, topics: 0 })
+      }
     } catch (e: unknown) {
       const res = e as { response?: { status?: number } }
-      // 404 = mailbox API not available (backend not restarted); treat as not connected
       if (res?.response?.status === 404) {
         setStatus({ connected: false })
-        setError('Mailbox API not available. Restart the backend: in email-api run "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"')
+        setError('Mailbox API not available. Restart the backend.')
       } else {
-        setError('Failed to load mailbox status')
+        setError('Failed to load settings')
         setStatus({ connected: false })
       }
     } finally {
@@ -57,7 +83,7 @@ export function SettingsPage() {
     } catch (err: unknown) {
       const res = err as { response?: { status?: number; data?: { detail?: string | unknown[] } }; message?: string }
       if (res?.response?.status === 404) {
-        setError('Mailbox API not available. Restart the backend from the email-api folder (see RUN.md).')
+        setError('Mailbox API not available. Restart the backend.')
       } else {
         const data = res?.response?.data as { detail?: string | { msg?: string }[] } | undefined
         let msg = typeof data?.detail === 'string' ? data.detail : null
@@ -75,8 +101,14 @@ export function SettingsPage() {
     setError(null)
     setSuccess(null)
     try {
-      const { data } = await api.post<{ fetched: number; new_saved: number }>('/mailbox/sync', null, { params: { max_emails: 50 } })
-      setSuccess(`Synced: ${data.fetched} emails fetched, ${data.new_saved} new. Check the Emails page.`)
+      if (status?.method === 'gmail') {
+        const { data } = await api.post<{ new_saved: number }>('/emails/sync', null, { params: { max_emails: 50 }, timeout: 90000 })
+        setSuccess(`Gmail sync complete. ${data.new_saved} new emails saved.`)
+      } else {
+        const { data } = await api.post<{ fetched: number; new_saved: number }>('/mailbox/sync', null, { params: { max_emails: 50 } })
+        setSuccess(`Synced: ${data.fetched} fetched, ${data.new_saved} new.`)
+      }
+      loadStatus()
     } catch (err: unknown) {
       const res = err as { response?: { data?: { detail?: string } } }
       setError(res?.response?.data?.detail || 'Sync failed')
@@ -92,7 +124,7 @@ export function SettingsPage() {
       await api.delete('/mailbox/disconnect')
       setSuccess('Mailbox disconnected.')
       loadStatus()
-    } catch (e) {
+    } catch {
       setError('Failed to disconnect')
     }
   }
@@ -100,51 +132,122 @@ export function SettingsPage() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
+        <CircularProgress sx={{ color: '#00d9ff' }} />
       </Box>
     )
   }
 
+  const connectedViaGmail = status?.connected && status?.method === 'gmail'
+  const connectedViaImap = status?.connected && status?.method === 'imap'
+
+  const cardSx = {
+    border: '1px solid rgba(0, 217, 255, 0.2)',
+    borderRadius: 3,
+    background: 'rgba(26, 31, 58, 0.5)',
+    backdropFilter: 'blur(10px)',
+    mb: 3,
+  }
+
   return (
-    <Box sx={{ maxWidth: 600 }}>
-      <Typography variant="h5" gutterBottom>Real-time email (IMAP)</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Connect your Gmail or Outlook to sync and classify real emails. Gmail: use an App Password (not your normal password).
+    <Box sx={{ maxWidth: 700 }}>
+      <Typography variant="h5" gutterBottom sx={{ fontFamily: '"Playfair Display", serif', color: '#f8f6f0' }}>
+        Settings
       </Typography>
+
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
-      {status?.connected ? (
-        <Card sx={{ mb: 2 }}>
+      {/* Account info */}
+      <Card sx={cardSx}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontFamily: '"Playfair Display", serif', color: '#f8f6f0', mb: 2 }}>Account</Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <Typography variant="caption" sx={{ color: '#e8e6e1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</Typography>
+              <Typography sx={{ color: '#f8f6f0' }}>{userEmail || '—'}</Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="caption" sx={{ color: '#e8e6e1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Name</Typography>
+              <Typography sx={{ color: '#f8f6f0' }}>{fullName || '—'}</Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="caption" sx={{ color: '#e8e6e1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Connection</Typography>
+              <Box sx={{ mt: 0.5 }}>
+                {connectedViaGmail && <Chip label="Google OAuth" size="small" sx={{ background: 'rgba(0,217,255,0.15)', color: '#00d9ff' }} />}
+                {connectedViaImap && <Chip label="IMAP" size="small" sx={{ background: 'rgba(255,215,0,0.15)', color: '#ffd700' }} />}
+                {!status?.connected && <Chip label="Not connected" size="small" sx={{ background: 'rgba(239,83,80,0.15)', color: '#ef5350' }} />}
+              </Box>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="caption" sx={{ color: '#e8e6e1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mailbox Email</Typography>
+              <Typography sx={{ color: '#f8f6f0' }}>{status?.mailbox_email || '—'}</Typography>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Quick stats */}
+      {stats && stats.total > 0 && (
+        <Card sx={cardSx}>
           <CardContent>
-            <Typography variant="subtitle1">Connected: {status.mailbox_email}</Typography>
-            <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-              <Button variant="contained" onClick={handleSync} disabled={syncLoading}>
-                {syncLoading ? 'Syncing…' : 'Sync now'}
-              </Button>
-              <Button variant="outlined" color="secondary" onClick={handleDisconnect}>Disconnect</Button>
-            </Box>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card sx={{ mb: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle1" gutterBottom>Connect mailbox</Typography>
-            <form onSubmit={handleConnect}>
-              <TextField fullWidth label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} margin="normal" required placeholder="you@gmail.com" />
-              <TextField fullWidth label="App password" type="password" value={appPassword} onChange={(e) => setAppPassword(e.target.value)} margin="normal" required placeholder="16-character App Password (no spaces)" helperText="Gmail: enable 2-Step Verification, then create one at myaccount.google.com/apppasswords — use the 16-character password without spaces." />
-              <Button type="submit" variant="contained" sx={{ mt: 2 }} disabled={connectLoading}>
-                {connectLoading ? 'Connecting…' : 'Connect'}
-              </Button>
-            </form>
+            <Typography variant="h6" sx={{ fontFamily: '"Playfair Display", serif', color: '#f8f6f0', mb: 2 }}>Inbox Summary</Typography>
+            <Grid container spacing={2}>
+              {[
+                { label: 'Total Emails', value: stats.total, color: '#00d9ff' },
+                { label: 'Spam', value: stats.spam, color: '#ef5350' },
+                { label: 'Ham (Good)', value: stats.ham, color: '#2e7d32' },
+                { label: 'Topics Found', value: stats.topics, color: '#ffd700' },
+              ].map((s, i) => (
+                <Grid item xs={3} key={i} sx={{ textAlign: 'center' }}>
+                  <Typography sx={{ fontFamily: '"Playfair Display", serif', fontSize: '1.5rem', fontWeight: 800, color: s.color }}>
+                    {s.value.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#e8e6e1' }}>{s.label}</Typography>
+                </Grid>
+              ))}
+            </Grid>
           </CardContent>
         </Card>
       )}
 
-      <Card>
+      {/* Email connection */}
+      <Card sx={cardSx}>
         <CardContent>
-          <Typography variant="h6">Settings</Typography>
-          <Typography variant="body2" color="text.secondary">Notification and display preferences can be configured here.</Typography>
+          <Typography variant="h6" sx={{ fontFamily: '"Playfair Display", serif', color: '#f8f6f0', mb: 1 }}>
+            {connectedViaGmail ? 'Gmail Connection' : connectedViaImap ? 'IMAP Connection' : 'Connect Email'}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2, color: '#e8e6e1' }}>
+            {connectedViaGmail
+              ? 'Emails synced via Gmail API — no app password needed.'
+              : status?.connected
+                ? 'IMAP mailbox connected.'
+                : 'Use "Sign in with Gmail" on the Login page, or connect IMAP below.'}
+          </Typography>
+
+          {status?.connected ? (
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Button variant="contained" onClick={handleSync} disabled={syncLoading}
+                sx={{ background: 'linear-gradient(135deg, #00d9ff 0%, #0099cc 100%)', color: '#0a0e27', fontWeight: 700 }}>
+                {syncLoading ? 'Syncing…' : 'Sync now'}
+              </Button>
+              {connectedViaImap && (
+                <Button variant="outlined" color="secondary" onClick={handleDisconnect}>Disconnect</Button>
+              )}
+            </Box>
+          ) : (
+            <>
+              <Divider sx={{ my: 2, borderColor: 'rgba(0,217,255,0.15)' }} />
+              <Typography variant="subtitle2" sx={{ color: '#e8e6e1', mb: 1 }}>Connect via IMAP (App Password)</Typography>
+              <form onSubmit={handleConnect}>
+                <TextField fullWidth label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} margin="normal" required placeholder="you@gmail.com" size="small" />
+                <TextField fullWidth label="App password" type="password" value={appPassword} onChange={(e) => setAppPassword(e.target.value)} margin="normal" required placeholder="16-character App Password" size="small"
+                  helperText="Gmail: enable 2-Step Verification → create App Password at myaccount.google.com/apppasswords" />
+                <Button type="submit" variant="contained" sx={{ mt: 1 }} disabled={connectLoading}>
+                  {connectLoading ? 'Connecting…' : 'Connect'}
+                </Button>
+              </form>
+            </>
+          )}
         </CardContent>
       </Card>
     </Box>

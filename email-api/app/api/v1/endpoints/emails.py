@@ -1,9 +1,12 @@
 """Email list and detail endpoints."""
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
@@ -11,6 +14,8 @@ from app.db.models import SyncedEmail
 from app.models.email import Email, EmailReclassifyRequest
 from app.services.email_service import generate_mock_emails, get_email_by_id
 from app.services.imap_service import get_mailbox_for_user
+from app.services.token_manager import get_oauth_for_user, get_valid_access_token
+from app.services.gmail_service import sync_emails_gmail
 from app.db.repositories.feedback import save_feedback
 
 router = APIRouter()
@@ -51,10 +56,12 @@ async def get_emails(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get paginated list of emails. Returns real synced emails if mailbox connected, else mock."""
+    """Get paginated list of emails. Uses synced emails when user has Gmail OAuth or IMAP mailbox, else mock."""
     user_id = current_user["id"]
     mailbox = await get_mailbox_for_user(db, user_id)
-    if mailbox:
+    oauth = await get_oauth_for_user(db, user_id)
+    # Show synced emails if user has Gmail OAuth or IMAP mailbox
+    if mailbox or oauth:
         base = select(SyncedEmail).where(SyncedEmail.user_id == user_id)
         if spam_label:
             base = base.where(SyncedEmail.spam_label == spam_label)
@@ -75,7 +82,7 @@ async def get_emails(
             "page": page,
             "page_size": page_size,
             "total_pages": (total + page_size - 1) // page_size if page_size else 0,
-            "source": "mailbox",
+            "source": "gmail" if oauth and not mailbox else "mailbox",
         }
     emails, total = generate_mock_emails(
         user_email=current_user["email"],
@@ -98,6 +105,31 @@ async def get_emails(
         "total_pages": (total + page_size - 1) // page_size,
         "source": "demo",
     }
+
+
+@router.post("/sync")
+async def sync_emails(
+    max_emails: int = Query(50, ge=1, le=500),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sync emails from Gmail API (OAuth users). Runs automatically after Google login. Returns count of new emails saved."""
+    user_id = current_user["id"]
+    access_token = await get_valid_access_token(db, user_id)
+    if not access_token:
+        raise HTTPException(
+            status_code=400,
+            detail="No Gmail account connected. Sign in with Google to sync emails.",
+        )
+    try:
+        saved = await sync_emails_gmail(db, user_id, access_token, max_emails=max_emails)
+    except ValueError as e:
+        logger.warning("Gmail sync ValueError for user %s: %s", user_id, e)
+        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        logger.exception("Gmail sync failed for user %s: %s", user_id, e)
+        raise HTTPException(status_code=502, detail=f"Gmail sync error: {type(e).__name__}: {e}")
+    return {"status": "synced", "new_saved": saved}
 
 
 @router.get("/{message_id}", response_model=Email)

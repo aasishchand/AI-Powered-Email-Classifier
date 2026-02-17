@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174"
     ALLOWED_ORIGINS_LIST: List[str] = []
 
+    # Google OAuth (for "Sign in with Gmail")
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    BACKEND_URL: str = "http://localhost:8000"   # Backend base URL (for Google redirect_uri)
+    FRONTEND_URL: str = "http://localhost:5173" # Where to redirect after Google login (with ?token=...)
+
     # Spark / Hive (optional; for production warehouse)
     SPARK_MASTER_URL: str = "spark://localhost:7077"
     HIVE_SERVER: str = "localhost:10000"

@@ -2,6 +2,19 @@ import React from 'react'
 import { Dialog, DialogTitle, DialogContent, Typography, Chip, Box } from '@mui/material'
 import type { Email } from '../../types/email.types'
 
+/** Strip HTML so email body always shows as readable text, not raw source. */
+function toPlainText(html: string | null | undefined): string {
+  if (html == null || html === '') return ''
+  const text = String(html)
+  if (!text.includes('<') || !text.includes('>')) return text
+  return text
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 interface Props {
   email: Email | null
   open: boolean
@@ -10,6 +23,7 @@ interface Props {
 
 export function EmailDetail({ email, open, onClose }: Props) {
   if (!email) return null
+  const body = toPlainText(email.body || email.body_preview) || 'No content'
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{email.subject}</DialogTitle>
@@ -23,7 +37,7 @@ export function EmailDetail({ email, open, onClose }: Props) {
             {email.topic ? <Chip label={email.topic} size="small" variant="outlined" /> : null}
           </Box>
         </Box>
-        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{email.body || email.body_preview || 'No content'}</Typography>
+        <Typography component="div" variant="body1" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{body}</Typography>
       </DialogContent>
     </Dialog>
   )
