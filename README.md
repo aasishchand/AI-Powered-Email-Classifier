@@ -9,6 +9,14 @@
 
 ---
 
+## Login
+
+Sign in with email/password or Google (Gmail). After login you are taken to the Dashboard.
+
+![Login](docs/login.png)
+
+---
+
 ## Summary
 
 The system helps faculty and staff manage high email volume by **classifying messages** (spam vs. ham, topics), **connecting real mailboxes** (Gmail/Outlook via IMAP), and **visualizing trends** in a web app. A FastAPI backend handles auth, metrics, and real-time sync; a React dashboard provides the UI. Optional data-pipeline and Spark components support batch processing and warehouse-style analytics.
@@ -28,6 +36,8 @@ Real-time metric updates can be delivered over WebSocket when the backend suppor
 
 ![Dashboard](docs/dashboard.png)
 
+![Dashboard view](docs/dashboard1.png)
+
 ---
 
 ## Emails
@@ -41,7 +51,7 @@ The **Emails** page lists classified messages in a table. You can:
 
 When a real mailbox is connected in Settings, this list is filled from your synced inbox; otherwise it shows demo or mock data.
 
-![Emails](docs/emails.png)
+![Emails](docs/email.png)
 
 ---
 
@@ -55,6 +65,8 @@ The **Analytics** page focuses on trends over time:
 This view helps spot patterns in volume and spam over the month.
 
 ![Analytics](docs/analytics.png)
+
+![Analytics trends](docs/analytics1.png)
 
 ---
 
@@ -76,7 +88,7 @@ Notification and display preferences can be extended here later.
 
 The backend exposes a REST API (auth, dashboard metrics, emails, mailbox connect/sync, WebSocket). Interactive **OpenAPI (Swagger)** docs are available at `/docs` when the API is running. There you can see all endpoints, try them with “Authorize” (JWT), and inspect request/response schemas.
 
-![API docs](docs/api-docs.png)
+*Screenshot: add `docs/api-docs.png` for API docs view.*
 
 ---
 
