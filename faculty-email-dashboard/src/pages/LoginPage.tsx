@@ -44,7 +44,7 @@ export function LoginPage() {
     // Go to dashboard immediately so user isn't stuck; sync runs in background
     navigate('/dashboard', { replace: true })
     // Fire-and-forget sync
-    api.post('/emails/sync', null, { params: { max_emails: 25 }, timeout: 90000 }).catch(() => {})
+    api.post('/emails/sync', null, { params: { max_emails: 150 }, timeout: 120000 }).catch(() => {})
   }, [searchParams, dispatch, navigate, setSearchParams])
 
   const handleGoogleLogin = () => {

@@ -4,6 +4,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard'
 import MailIcon from '@mui/icons-material/Mail'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import SettingsIcon from '@mui/icons-material/Settings'
+import StorageIcon from '@mui/icons-material/Storage'
 
 const drawerWidth = 240
 
@@ -11,6 +12,7 @@ const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { to: '/emails', label: 'Emails', icon: <MailIcon /> },
   { to: '/analytics', label: 'Analytics', icon: <BarChartIcon /> },
+  { to: '/bigdata', label: 'Big Data Analytics', icon: <StorageIcon /> },
   { to: '/settings', label: 'Settings', icon: <SettingsIcon /> },
 ]
 

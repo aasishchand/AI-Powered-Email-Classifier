@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { EmailsPage } from './pages/EmailsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { BigDataAnalytics } from './pages/BigDataAnalytics'
 import { LoginPage } from './pages/LoginPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="emails" element={<EmailsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="bigdata" element={<BigDataAnalytics />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

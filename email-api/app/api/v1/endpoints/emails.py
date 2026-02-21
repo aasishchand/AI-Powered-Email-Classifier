@@ -109,7 +109,7 @@ async def get_emails(
 
 @router.post("/sync")
 async def sync_emails(
-    max_emails: int = Query(50, ge=1, le=500),
+    max_emails: int = Query(150, ge=1, le=500),
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

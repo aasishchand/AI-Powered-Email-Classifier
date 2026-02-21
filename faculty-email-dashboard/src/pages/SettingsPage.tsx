@@ -102,10 +102,10 @@ export function SettingsPage() {
     setSuccess(null)
     try {
       if (status?.method === 'gmail') {
-        const { data } = await api.post<{ new_saved: number }>('/emails/sync', null, { params: { max_emails: 50 }, timeout: 90000 })
+        const { data } = await api.post<{ new_saved: number }>('/emails/sync', null, { params: { max_emails: 150 }, timeout: 120000 })
         setSuccess(`Gmail sync complete. ${data.new_saved} new emails saved.`)
       } else {
-        const { data } = await api.post<{ fetched: number; new_saved: number }>('/mailbox/sync', null, { params: { max_emails: 50 } })
+        const { data } = await api.post<{ fetched: number; new_saved: number }>('/mailbox/sync', null, { params: { max_emails: 150 } })
         setSuccess(`Synced: ${data.fetched} fetched, ${data.new_saved} new.`)
       }
       loadStatus()

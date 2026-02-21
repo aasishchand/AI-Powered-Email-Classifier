@@ -20,9 +20,9 @@ The system helps faculty and staff manage high email volume by **classifying mes
 The **Dashboard** is the home view after login. It shows:
 
 - **KPIs:** Total emails today, spam rate, average response time, and time saved by auto-classification.
-- **Email volume (14 days):** Line chart of total and spam volume over two weeks.
+- **Email volume:** Line chart of total and spam volume over time.
 - **Topic distribution:** Pie chart of how emails are grouped (e.g. Academic, Administrative, Research, Events, IT, Finance, Student Affairs, General Announcements).
-- **Spam vs ham:** Breakdown of spam versus legitimate mail over the last 14 days.
+- **Spam vs ham:** Breakdown of spam versus legitimate mail.
 
 Real-time metric updates can be delivered over WebSocket when the backend supports it.
 
@@ -80,6 +80,12 @@ The backend exposes a REST API (auth, dashboard metrics, emails, mailbox connect
 
 ---
 
+## Big Data Analytics
+
+When the big data stack is enabled (MinIO, Spark, Airflow, Kafka), the **Big Data Analytics** page (sidebar) shows pipeline status, data volume charts from Spark-computed analytics, model performance and history, storage partition explorer, and trigger controls for analytics refresh. See [docs/BIG_DATA_ARCHITECTURE.md](docs/BIG_DATA_ARCHITECTURE.md) for architecture and deployment.
+
+---
+
 ## Tech stack
 
 | Layer       | Technologies |
@@ -88,6 +94,7 @@ The backend exposes a REST API (auth, dashboard metrics, emails, mailbox connect
 | **Backend**  | FastAPI, Pydantic, SQLAlchemy (async), JWT, WebSockets |
 | **Database** | SQLite (dev) / PostgreSQL; Redis optional for cache |
 | **Data/ML**  | Spark (PySpark), Hive-style schema, ETL/ML pipeline stubs |
+| **Big Data (optional)** | MinIO (S3), Kafka, Airflow, Spark cluster; `/api/v1/bigdata/` endpoints read from MinIO |
 
 ---
 

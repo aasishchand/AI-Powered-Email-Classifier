@@ -1,7 +1,7 @@
 """Connect mailbox (IMAP) and sync emails in real time."""
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr
 
 from app.api.deps import get_current_user
@@ -96,7 +96,7 @@ async def connect_mailbox(
 
 @router.post("/sync")
 async def sync_mailbox(
-    max_emails: int = 50,
+    max_emails: int = Query(150, ge=1, le=500),
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
