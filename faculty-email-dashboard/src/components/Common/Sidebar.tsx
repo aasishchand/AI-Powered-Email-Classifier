@@ -5,12 +5,14 @@ import MailIcon from '@mui/icons-material/Mail'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import SettingsIcon from '@mui/icons-material/Settings'
 import StorageIcon from '@mui/icons-material/Storage'
+import HubIcon from '@mui/icons-material/Hub'
 
-const drawerWidth = 240
+export const SIDEBAR_DRAWER_WIDTH = 240
 
 const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { to: '/emails', label: 'Emails', icon: <MailIcon /> },
+  { to: '/pipeline', label: 'Live pipeline', icon: <HubIcon /> },
   { to: '/analytics', label: 'Analytics', icon: <BarChartIcon /> },
   { to: '/bigdata', label: 'Big Data Analytics', icon: <StorageIcon /> },
   { to: '/settings', label: 'Settings', icon: <SettingsIcon /> },
@@ -21,10 +23,10 @@ export function Sidebar() {
     <Drawer
       variant="permanent"
       sx={{
-        width: drawerWidth,
+        width: SIDEBAR_DRAWER_WIDTH,
         flexShrink: 0,
         '& .MuiDrawer-paper': {
-          width: drawerWidth,
+          width: SIDEBAR_DRAWER_WIDTH,
           boxSizing: 'border-box',
           top: 64,
           height: 'calc(100% - 64px)',

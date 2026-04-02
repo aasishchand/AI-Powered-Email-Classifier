@@ -7,7 +7,9 @@ import type { RootState } from '../../store/store'
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/emails', label: 'Emails' },
+  { to: '/pipeline', label: 'Live pipeline' },
   { to: '/analytics', label: 'Analytics' },
+  { to: '/bigdata', label: 'Big data' },
   { to: '/settings', label: 'Settings' },
 ]
 
@@ -50,7 +52,7 @@ export function Header() {
             mr: 4,
           }}
         >
-          Faculty & Personal Email
+          Email Classifier
         </Typography>
 
         {/* Nav links - like Features, Analytics, Metrics, Contact in reference */}

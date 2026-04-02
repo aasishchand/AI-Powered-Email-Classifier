@@ -1,4 +1,6 @@
 # Faculty Email Classification API
+# If pip fails on Python 3.14+ (pydantic-core build), use flexible installs, e.g.:
+#   pip install "fastapi>=0.115" "uvicorn[standard]>=0.30" "pydantic>=2.10" "pydantic-settings>=2.6" ...
 fastapi==0.109.2
 uvicorn[standard]==0.27.1
 pydantic==2.6.1
@@ -7,6 +9,7 @@ pydantic-settings==2.1.0
 # Database (aiosqlite for SQLite; asyncpg/psycopg2 only when using PostgreSQL)
 sqlalchemy[asyncio]==2.0.25
 aiosqlite==0.19.0
+psycopg2-binary==2.9.9
 
 # Auth
 python-jose[cryptography]==3.3.0
@@ -15,6 +18,9 @@ passlib[bcrypt]==1.7.4
 # Redis & caching
 redis==5.0.1
 hiredis==2.3.2
+
+# Kafka (optional: Live pipeline "publish sample" from API)
+kafka-python>=2.3.0
 
 # HTTP & WebSocket
 httpx==0.26.0

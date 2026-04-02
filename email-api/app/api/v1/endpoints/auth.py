@@ -40,8 +40,11 @@ GOOGLE_SCOPES = [
 async def google_login():
     """Redirect to Google consent screen. Requests Gmail + profile scopes for email sync without app password."""
     settings = get_settings()
-    if not settings.GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=503, detail="Google login is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        raise HTTPException(
+            status_code=503,
+            detail="Google login is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in email-api/.env",
+        )
     base = settings.BACKEND_URL.rstrip("/")
     redirect_uri = f"{base}{settings.API_V1_PREFIX}/auth/google/callback"
     params = {

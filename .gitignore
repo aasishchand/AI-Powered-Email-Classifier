@@ -1,6 +1,5 @@
-# Environment and secrets
-.env
-.env.local
+# Environment and secrets (.env.* covers .env.development, .env.local, etc.)
+.env*
 *.env
 !.env.example
 

@@ -19,17 +19,39 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleConfigured, setGoogleConfigured] = useState<boolean | null>(null)
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [searchParams, setSearchParams] = useSearchParams()
   const handledRef = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const { data } = await api.get<{ google_configured?: boolean }>('/auth/ok')
+        if (!cancelled) setGoogleConfigured(Boolean(data?.google_configured))
+      } catch {
+        if (!cancelled) setGoogleConfigured(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Handle callback from Google OAuth: ?token=... or ?error=...
   useEffect(() => {
     const token = searchParams.get('token')
     const err = searchParams.get('error')
     if (err) {
-      setError(err === 'access_denied' ? 'Google sign-in was cancelled.' : 'Google sign-in failed. Try again or use email/password.')
+      const msg =
+        err === 'access_denied'
+          ? 'Google sign-in was cancelled.'
+          : err === 'not_configured'
+            ? 'Google sign-in is not configured on the server (set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in email-api/.env). Use email/password below.'
+            : 'Google sign-in failed. Try again or use email/password.'
+      setError(msg)
       setSearchParams({}, { replace: true })
       return
     }
@@ -88,28 +110,38 @@ export function LoginPage() {
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 217, 255, 0.12), transparent), #0a0e27' }}>
       <Card sx={{ maxWidth: 400, width: '100%', background: 'rgba(26, 31, 58, 0.6)', backdropFilter: 'blur(10px)', border: '1px solid rgba(0, 217, 255, 0.2)', borderRadius: 3 }}>
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h5" gutterBottom sx={{ fontFamily: '"Playfair Display", serif', fontWeight: 700, color: '#f8f6f0', textAlign: 'center' }}>Faculty & Personal Email</Typography>
+          <Typography variant="h5" gutterBottom sx={{ fontFamily: '"Playfair Display", serif', fontWeight: 700, color: '#f8f6f0', textAlign: 'center' }}>Email Classifier</Typography>
           {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
 
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={handleGoogleLogin}
-            sx={{
-              mt: 1,
-              py: 1.5,
-              borderRadius: 50,
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #00d9ff 0%, #0099cc 100%)',
-              color: '#0a0e27',
-              '&:hover': { background: 'linear-gradient(135deg, #00d9ff 0%, #0099cc 100%)', boxShadow: '0 10px 30px rgba(0, 217, 255, 0.35)' },
-            }}
-          >
-            Sign in with Gmail
-          </Button>
+          {googleConfigured === false ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Gmail sign-in is off until you add <strong>GOOGLE_CLIENT_ID</strong> and <strong>GOOGLE_CLIENT_SECRET</strong> to{' '}
+              <code style={{ fontSize: '0.85em' }}>email-api/.env</code> and restart the API. Use email/password below.
+            </Alert>
+          ) : null}
+
+          {googleConfigured !== false ? (
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleGoogleLogin}
+              disabled={googleConfigured === null}
+              sx={{
+                mt: 1,
+                py: 1.5,
+                borderRadius: 50,
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #00d9ff 0%, #0099cc 100%)',
+                color: '#0a0e27',
+                '&:hover': { background: 'linear-gradient(135deg, #00d9ff 0%, #0099cc 100%)', boxShadow: '0 10px 30px rgba(0, 217, 255, 0.35)' },
+              }}
+            >
+              {googleConfigured === null ? 'Checking Gmail…' : 'Sign in with Gmail'}
+            </Button>
+          ) : null}
 
           <Divider sx={{ my: 2, borderColor: 'rgba(0, 217, 255, 0.3)' }}>
-            <Typography variant="caption" sx={{ color: '#e8e6e1' }}>or</Typography>
+            <Typography variant="caption" sx={{ color: '#e8e6e1' }}>{googleConfigured === false ? 'sign in' : 'or'}</Typography>
           </Divider>
 
           <form onSubmit={handleSubmit}>
