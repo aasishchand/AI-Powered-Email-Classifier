@@ -44,3 +44,7 @@ Thumbs.db
 # Build outputs
 faculty-email-dashboard/dist/
 email-api/*.db
+
+# Local Python install / stray executables under email-api (not source)
+email-api/Lib/
+email-api/scripts/*.exe
